@@ -325,6 +325,33 @@ func (c *InfluxChangeConnectionStringCommand) NodeName() string {
 	return c.Name
 }
 
+type SaveSubscriptionCommand struct {
+    Subscription    *cluster.Subscription
+}
+
+func NewSaveSubscriptionCommand(subscription *cluster.Subscription) *SaveSubscriptionCommand {
+    return &SaveSubscriptionCommand{subscription}
+}
+
+func (c *SaveSubscriptionCommand) CommandName() string {
+    return "save_subscription"
+}
+
+func (c *SaveSubscriptionCommand) Apply(server raft.Server) (interface{}, error) {
+    config := server.Context().(*cluster.ClusterConfiguration)
+    createdSubscription, err := config.AddSubscription(c.Subscription)
+    fmt.Println("we are here in command.go's Apply function")
+    if err != nil {
+        return nil, err
+    }
+    //createdSubscriptionData := make(*cluster.Subscription, 0)
+    //for _, s := range createdSubscription {
+    //createdSubscriptionData = append(createdSubscriptionData, s.ToNewSubscriptionData())
+    //}
+    //return createdSubscriptionData, nil
+    return createdSubscription, nil
+    return nil, nil
+}
 type CreateShardsCommand struct {
 	Shards []*cluster.NewShardData
 }
@@ -378,32 +405,4 @@ func (c *DropShardCommand) Apply(server raft.Server) (interface{}, error) {
 	config := server.Context().(*cluster.ClusterConfiguration)
 	err := config.DropShard(c.ShardId, c.ServerIds)
 	return nil, err
-}
-
-type SaveSubscriptionCommand struct {
-    Subscription    *cluster.Subscription
-}
-
-func NewSaveSubscriptionCommand(subscription *cluster.Subscription) *SaveSubscriptionCommand {
-    return &SaveSubscriptionCommand{subscription}
-}
-
-func (c *SaveSubscriptionCommand) CommandName() string {
-    return "create_subscription"
-}
-
-func (c *SaveSubscriptionCommand) Apply(server raft.Server) (interface{}, error) {
-    config := server.Context().(*cluster.ClusterConfiguration)
-    createdSubscription, err := config.AddSubscription(c.Subscription)
-    fmt.Println("we are here in command.go's Apply function")
-    if err != nil {
-        return nil, err
-    }
-    //createdSubscriptionData := make(*cluster.Subscription, 0)
-    //for _, s := range createdSubscription {
-    //createdSubscriptionData = append(createdSubscriptionData, s.ToNewSubscriptionData())
-    //}
-    //return createdSubscriptionData, nil
-    return createdSubscription, nil
-    return nil, nil
 }

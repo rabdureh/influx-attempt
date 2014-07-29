@@ -873,15 +873,6 @@ func (self *CoordinatorImpl) ListClusterAdmins(requester common.User) ([]string,
 	return self.clusterConfiguration.GetClusterAdmins(), nil
 }
 
-func (self *CoordinatorImpl) CreateSubscription(requester common.User, subscription *cluster.Subscription) error {
-    if !requester.IsClusterAdmin() {
-        return common.NewAuthorizationError("Insufficient permissions")
-    }
-
-    return self.raftServer.SaveSubscription(subscription)
-    return nil
-}
-
 func (self *CoordinatorImpl) CreateClusterAdminUser(requester common.User, username, password string) error {
 	if ok, err := self.permissions.AuthorizeCreateClusterAdmin(requester); !ok {
 		return err

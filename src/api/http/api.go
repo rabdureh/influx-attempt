@@ -20,7 +20,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-    "math/rand"
 
 	log "code.google.com/p/log4go"
 	"github.com/bmizerany/pat"
@@ -158,13 +157,13 @@ func (self *HttpServer) Serve(listener net.Listener) {
 	self.registerEndpoint(p, "get", "/sync", self.isInSync)
 
     // rgm-specific endpoints
-    self.registerEndpoint(p, "get", "/db/:db/subscriptions", self.listSubscriptions)
+//    self.registerEndpoint(p, "get", "/db/:db/subscriptions", self.listSubscriptions)
     //self.registerEndpoint(p, "post", "/db/:db/queryCurrent/:id", self.queryCurrent)
     //self.registerEndpoint(p, "post", "/db/:db/queryFollow", self.queryFollow)
 //    self.registerEndpoint(p, "post", "/db/:db/subscriptions/", self.subscribeCurrent)
-    self.registerEndpoint(p, "post", "/db/:db/subscriptions/", self.subscribeTimeSeries)
-    self.registerEndpoint(p, "del", "/db/:db/subscriptions/", self.unsubscribe)
-    self.registerEndpoint(p, "post", "/db/:db/querySub/", self.querySub)
+//    self.registerEndpoint(p, "post", "/db/:db/subscriptions/", self.subscribeTimeSeries)
+//    self.registerEndpoint(p, "del", "/db/:db/subscriptions/", self.unsubscribe)
+//    self.registerEndpoint(p, "post", "/db/:db/querySub/", self.querySub)
 
 	if listener == nil {
 		self.startSsl(p)
@@ -310,7 +309,8 @@ func (self *HttpServer) sendCrossOriginHeader(w libhttp.ResponseWriter, r *libht
 }
 
 func (self *HttpServer) query(w libhttp.ResponseWriter, r *libhttp.Request) {
-	fmt.Println("QUERYING NOW!!")
+	//fmt.Println("QUERYING NOW!!")
+    fmt.Println("here")
 	query := r.URL.Query().Get("q")
 	db := r.URL.Query().Get(":db")
 	pretty := isPretty(r)
@@ -362,6 +362,8 @@ func (self *HttpServer) writePoints(w libhttp.ResponseWriter, r *libhttp.Request
 		w.Write([]byte(err.Error()))
 		return
 	}
+
+    fmt.Println("here")
 
 	self.tryAsDbUserAndClusterAdmin(w, r, func(user User) (int, interface{}) {
 		reader := r.Body
@@ -1164,6 +1166,7 @@ type ClusterSubscriptions struct {
     Ids         []int
 }
 
+/*
 func (self *HttpServer) listSubscriptions(w libhttp.ResponseWriter, r *libhttp.Request) {
     fmt.Println("hello from http listsubscriptions")
     self.tryAsClusterAdmin(w, r, func(u User) (int, interface{}) {
@@ -1171,7 +1174,6 @@ func (self *HttpServer) listSubscriptions(w libhttp.ResponseWriter, r *libhttp.R
         if err != nil {
             return errorToStatusCode(err), err.Error()
         }
-        /*
         subscriptionlist := []int{3}
         subscriptions := make([]*ClusterSubscriptions, 0, len(subscriptionlist))
         for sub1, sub2 := range subscriptions {
@@ -1180,24 +1182,8 @@ func (self *HttpServer) listSubscriptions(w libhttp.ResponseWriter, r *libhttp.R
             fmt.Printf("sub1 %+v: ", sub1)
             fmt.Printf("sub2 %#v: ", sub2)
         }
-        */
         return libhttp.StatusOK, subscriptions
     })
-}
-
-/*
-func (self *HttpServer) listClusterAdmins(w libhttp.ResponseWriter, r *libhttp.Request) {
-	self.tryAsClusterAdmin(w, r, func(u User) (int, interface{}) {
-		names, err := self.userManager.ListClusterAdmins(u)
-		if err != nil {
-			return errorToStatusCode(err), err.Error()
-		}
-		users := make([]*ApiUser, 0, len(names))
-		for _, name := range names {
-			users = append(users, &ApiUser{name})
-		}
-		return libhttp.StatusOK, users
-	})
 }
 */
 
@@ -1216,25 +1202,7 @@ type newSupscriptionInfo struct {
     QTime       int64 `json:"qTm"`
 }
 
-type SerialMap struct {
-    Subscription    []*SubscribeCurrTS
-    UniqueIds       map[int]int
-    Counter         int
-}
-
-const (
-    UNIQUE_SUBSCRIBER_LIMIT = 10000
-)
-
-func msToTime(ms string) (time.Time, error) {
-    msInt, err := strconv.ParseInt(ms, 10, 64)
-    if err != nil {
-        return time.Time{}, err
-    }
-
-    return time.Unix(0, msInt*int64(time.Millisecond)), nil
-}
-
+/*
 func (self *HttpServer) subscribeTimeSeries(w libhttp.ResponseWriter, r *libhttp.Request) {
     self.tryAsClusterAdmin(w, r, func(u User) (int, interface{}) {
         newSubscriptions := newSubscriptionInfo{}
@@ -1242,18 +1210,15 @@ func (self *HttpServer) subscribeTimeSeries(w libhttp.ResponseWriter, r *libhttp
         if err != nil {
                 return libhttp.StatusInternalServerError, err.Error()
         }
-        /*
         subscribeme := &SubscribeMe{}
         err = json.Unmarshal(body, &subscribeme)
         if err != nil {
             return libhttp.StatusInternalServerError, err.Error()
         }
-        */
         err = json.Unmarshal(body, &newSubscriptions)
         if err != nil {
             return libhttp.StatusInternalServerError, err.Error()
         }
-        /*
         subscribeCurrTS := &SubscribeCurrTS{}
         subscribeCurrTS.Ids = subscribeme.Ids
         // Going to want a more robust converter in terms of input string (any format) to time.Time
@@ -1269,14 +1234,12 @@ func (self *HttpServer) subscribeTimeSeries(w libhttp.ResponseWriter, r *libhttp
         if err != nil {
                 return libhttp.StatusInternalServerError, err.Error()
         }
-        */
         newSubscriptionData := &cluster.Subscription{
                 Ids:     newSubscriptions.Ids,
                 StartTm: time.Unix(newSubscriptions.StartTm, 0),
                 EndTm:   time.Unix(newSubscriptions.EndTm, 0),
                 QTime:   time.Now().Unix(),
         }
-        /*
         serialMap := &SerialMap{}
         serialMap.Subscription = append(serialMap.Subscription, subscribeCurrTS)
         if serialMap.UniqueIds == nil {
@@ -1287,7 +1250,6 @@ func (self *HttpServer) subscribeTimeSeries(w libhttp.ResponseWriter, r *libhttp
         // Probably want to take an argument which is the person's ID
         serialMap.UniqueIds[serialMap.Counter] = r
         serialMap.Counter++
-        */
         //err := self.subscriptionManager.SubscribeTimeSeries(u)
         _, err = self.raftServer.SaveSubscriptions()
         if err != nil {
@@ -1296,7 +1258,9 @@ func (self *HttpServer) subscribeTimeSeries(w libhttp.ResponseWriter, r *libhttp
         return libhttp.StatusAccepted, nil
     })
 }
+*/
 
+/*
 type Unsubscription struct {
     Ids  []int
 }
@@ -1350,3 +1314,4 @@ func (self *HttpServer) querySub(w libhttp.ResponseWriter, r *libhttp.Request) {
     })
     return
 }
+*/

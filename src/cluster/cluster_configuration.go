@@ -75,7 +75,6 @@ type ClusterConfiguration struct {
 	addedLocalServer           bool
 	connectionCreator          func(string) ServerConnection
 	shardStore                 LocalShardStore
-    subscriptionStore          LocalSubscriptionStore
 	wal                        WAL
 	longTermShards             []*ShardData
 	shortTermShards            []*ShardData
@@ -1043,13 +1042,6 @@ func (self *ClusterConfiguration) MarshalNewShardArrayToShards(newShards []*NewS
 		shards[i] = shard
 	}
 	return shards, nil
-}
-
-func (self *ClusterConfiguration) MarshalSubscriptions(newSubscription *Subscription) (*Subscription, error) {
-    sub := NewSubscription()
-    err := sub.SetLocalStore(self.subscriptionStore, self.LocalServer.Id)
-    sub.SetServers(server)
-    return sub, nil
 }
 
 // This function is for the request handler to get the shard to write a
